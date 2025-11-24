@@ -1,4 +1,9 @@
 use macroquad::prelude::*;
+enum CurrentState{
+    Game,
+    MainMenu
+}
+
 fn game_msg() {
     let text: &str = "this screen is for testing only";
     let font_size = 30;
@@ -23,12 +28,12 @@ fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
     let inside_y = my >= y && my <= y + h;
     let hovered = inside_x && inside_y;
 
-    hovered && is_mouse_button_pressed(MouseButton::Left)
+    hovered && is_mouse_button_pressed(MouseButton::Left) 
 }
 
 #[macroquad::main("i click button, i happy")]
 async fn main() {
-    let mut state_main_menu: bool = true;
+    let mut state = CurrentState::MainMenu;
     loop {
         clear_background(PURPLE);
 
@@ -47,7 +52,8 @@ async fn main() {
             screen.y / 2.0 - outline_size.y / 2.0,
         );
         screen_outline(outline_pos.x, outline_pos.y, screen.x, screen.y);
-if state_main_menu == true {
+/* 
+        if state_main_menu == true {
         if button(btn_pos.x, btn_pos.y, btn_size.x, btn_size.y, "no function") {
             println!("game started");
             state_main_menu = !state_main_menu;
@@ -55,7 +61,16 @@ if state_main_menu == true {
 } else {
 game_msg()
 }
-
+*/
+match state {
+    CurrentState::MainMenu => {
+         if button(btn_pos.x, btn_pos.y, btn_size.x, btn_size.y, "START") {
+        println!("game started");
+        state = CurrentState::Game;
+         }
+    }
+CurrentState::Game => game_msg(),
+}
 
         next_frame().await;
     }
