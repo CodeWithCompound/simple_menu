@@ -4,6 +4,37 @@ enum CurrentState {
     MainMenu,
     Settings,
 }
+#[derive(Clone, Copy, Debug)]
+enum BgColor {
+    RED,
+    GREEN,
+    BLUE,
+    PINK,
+    PURPLE,
+}
+// okay the following 2? i couldn't explain, like i'm trying to be somewhat professional BUT WHO THOUGHT MAKING COLOR GO FROM A TO B COULD BE THIS HARD FFS
+impl BgColor {
+    fn next(self) -> BgColor {
+        match self {
+            BgColor::RED => BgColor::GREEN,
+            BgColor::GREEN => BgColor::BLUE,
+            BgColor::BLUE => BgColor::PINK,
+            BgColor::PINK => BgColor::PURPLE,
+            BgColor::PURPLE => BgColor::RED,
+        }
+    }
+}
+impl BgColor {
+    fn to_color(self) -> Color {
+        match self {
+            BgColor::RED    => RED,
+            BgColor::GREEN  => GREEN,
+            BgColor::BLUE   => BLUE,
+            BgColor::PINK   => PINK,
+            BgColor::PURPLE => PURPLE,
+        }
+    }
+}
 
 fn game_msg(text: &str, position: Vec2, font_size: f32) {
     draw_text(text, position.x, position.y, font_size as f32, WHITE);
@@ -28,11 +59,16 @@ fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
 
+
+
 #[macroquad::main("i click button, i happy")]
 async fn main() {
+    let version = "0.2.1";
     let mut state = CurrentState::MainMenu;
+    let mut current_color: BgColor = BgColor::PURPLE;
     loop {
-        clear_background(PURPLE);
+        clear_background(current_color.to_color());
+
 
         let screen = vec2(screen_width(), screen_height());
         let btn_size = vec2(200.0, 60.0);
@@ -52,15 +88,12 @@ async fn main() {
 
         match state {
             CurrentState::MainMenu => {
-                let v_text = "v 0.0.2";
+                let v_text = version;
                 let v_text_dims = measure_text(v_text, None, 20, 1.0);
-                let game_text_pos = vec2(
-                    10.0,
-                    v_text_dims.height * 3.0,
-                );
+                let game_text_pos = vec2(10.0, v_text_dims.height * 3.0);
 
-                 game_msg(v_text, game_text_pos, 40.0);
-                
+                game_msg(v_text, game_text_pos, 40.0);
+
                 if button(btn_pos.x, btn_pos.y, btn_size.x, btn_size.y, "START") {
                     println!("game started!");
                     state = CurrentState::Game;
@@ -80,12 +113,24 @@ async fn main() {
             }
             CurrentState::Settings => {
                 let settings_text = "change your settings as you desire! (SETTINGS SOON!!)";
-                let txt_dims = measure_text(settings_text, None, 30, 1.0);
+                let settings_text_dims = measure_text(settings_text, None, 30, 1.0);
                 let settings_text_pos: Vec2 = vec2(
-                    screen_width() / 2.0 - txt_dims.width / 2.0,
-                    screen_height() - txt_dims.height / 2.0,
+                    screen_width() / 2.0 - settings_text_dims.width / 2.0,
+                    screen_height() - settings_text_dims.height / 2.0,
                 );
                 game_msg(settings_text, settings_text_pos, 30.0);
+
+                let color_btn_offset = 10.0;
+                let color_btn_size = vec2(200.0, 50.0);
+                if button(
+                    50.0,
+                    color_btn_offset,
+                    color_btn_size.x,
+                    color_btn_size.y,
+                    "Choose color",
+                ) {
+                    current_color = current_color.next();
+                }
             } /*
               let txt_dims = measure_text(text, None, font_size, 1.0);
               let position_text = vec2(screen_width() / 2.0 - txt_dims.width / 2.0,
