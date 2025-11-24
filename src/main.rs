@@ -1,5 +1,10 @@
 use macroquad::prelude::*;
-
+fn welcome_msg() {
+    let text: &str = "this screen is for testing only";
+    let font_size = 30;
+    let txt_dims = measure_text(text, None, font_size, 1.0); 
+    draw_text(text, screen_width() / 2.0 - txt_dims.width / 2.0, screen_height() / 2.0 - txt_dims.height / 2.0, font_size as f32, WHITE);
+}
 fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
     let (mx, my) = mouse_position();
 
@@ -18,6 +23,7 @@ fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
 
 #[macroquad::main("i click button, i happy")]
 async fn main() {
+    let mut state_main_menu: bool = true;
     loop {
         clear_background(PURPLE);
 
@@ -30,10 +36,15 @@ async fn main() {
             screen.x / 2.0 - btn_size.x / 2.0,
             screen.y / 2.0 - btn_size.y / 2.0,
         );
-
+if state_main_menu == true {
         if button(btn_pos.x, btn_pos.y, btn_size.x, btn_size.y, "no function") {
             println!("can't touch this");
+            state_main_menu = !state_main_menu;
         }
+} else {
+welcome_msg()
+}
+
 
         next_frame().await;
     }
