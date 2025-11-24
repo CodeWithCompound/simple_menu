@@ -1,0 +1,12 @@
+# Rust build junk
+target/
+debug/
+flycheck*
+*.rs.bk
+*.pdb
+*.exe
+*.dll
+
+# Editor junk
+.vscode/
+.idea/

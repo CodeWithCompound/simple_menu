@@ -65,7 +65,7 @@ game_msg()
 match state {
     CurrentState::MainMenu => {
          if button(btn_pos.x, btn_pos.y, btn_size.x, btn_size.y, "START") {
-        println!("game started");
+        println!("game started!");
         state = CurrentState::Game;
          }
     }
