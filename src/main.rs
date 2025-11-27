@@ -58,10 +58,28 @@ fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
 
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
+fn dev_mode_display(dev_mode: bool, mouse: (f32, f32)) {
+    // Pick the text based on dev_mode, and optionally print position
+    let _dev_text = if dev_mode {
+            draw_text(
+        &format!("x: {} | y: {}", mouse.0, mouse.1),
+        screen_width() - 150.0,
+        40.0,
+        20.0,
+        BLACK,
+    ); 
+        
+        "dev mode"
+    } else {
+        "no dev mode"
+    };
+
+}
 
 #[macroquad::main("i click button, i happy")]
 async fn main() {
     let version = "0.2.2";
+    let mut dev_mode = false;
     let mut state = CurrentState::MainMenu;
     let mut current_color: BgColor = BgColor::PURPLE;
     loop {
@@ -70,7 +88,7 @@ async fn main() {
         let screen = vec2(screen_width(), screen_height());
         let btn_size = vec2(200.0, 60.0);
         let outline_size = vec2(screen_width(), screen_height());
-        let mouse = mouse_position();
+        let mouse: (f32, f32) = mouse_position();
         // center position: screen/2 - size/2
         // we make the buttons right side be in the center, to center the button itself we move it to the left by half it's lenght, same for height...
         let btn_pos = vec2(
@@ -82,9 +100,7 @@ async fn main() {
             screen.y / 2.0 - outline_size.y / 2.0,
         );
         screen_outline(outline_pos.x, outline_pos.y, screen.x, screen.y);
-
-        println!("position: {:?}", mouse); // add this to dev mode
-
+        dev_mode_display(dev_mode, mouse);
         match state {
             CurrentState::MainMenu => {
                 let v_text = version;
@@ -118,22 +134,33 @@ async fn main() {
                     screen_height() - settings_text_dims.height / 2.0,
                 );
                 game_msg(settings_text, settings_text_pos, 30.0);
-                // for v 0.2.3 add dev mode 
+                // for v 0.2.3 add dev mode
+
                 let color_btn_size = vec2(200.0, 50.0);
                 if button(
-                    50.0,
+                    screen_width() / 2.0 - btn_size.x / 2.0,
+                    125.0,
+                    color_btn_size.x,
+                    color_btn_size.y,
+                     &format!("Dev: {}", dev_mode),
+                ) {
+                    dev_mode = !dev_mode;
+                }
+                if button(
+                    screen_width() / 2.0 - btn_size.x / 2.0,
                     50.0,
                     color_btn_size.x,
                     color_btn_size.y,
                     "Choose color",
                 ) {
                     current_color = current_color.next();
-                } 
-                // go back to main menu
-                if button(10.0, 10.0, btn_size.x, btn_size.y,"Back to game",) {
-                state = CurrentState::Game;
                 }
-            } 
+
+                // go back to main menu
+                if button(10.0, 10.0, btn_size.x, btn_size.y, "Back to game") {
+                    state = CurrentState::Game;
+                }
+            }
         }
         next_frame().await;
     }
