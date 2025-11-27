@@ -27,10 +27,10 @@ impl BgColor {
 impl BgColor {
     fn to_color(self) -> Color {
         match self {
-            BgColor::RED    => RED,
-            BgColor::GREEN  => GREEN,
-            BgColor::BLUE   => BLUE,
-            BgColor::PINK   => PINK,
+            BgColor::RED => RED,
+            BgColor::GREEN => GREEN,
+            BgColor::BLUE => BLUE,
+            BgColor::PINK => PINK,
             BgColor::PURPLE => PURPLE,
         }
     }
@@ -59,21 +59,18 @@ fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
 
-
-
 #[macroquad::main("i click button, i happy")]
 async fn main() {
-    let version = "0.2.1";
+    let version = "0.2.2";
     let mut state = CurrentState::MainMenu;
     let mut current_color: BgColor = BgColor::PURPLE;
     loop {
         clear_background(current_color.to_color());
 
-
         let screen = vec2(screen_width(), screen_height());
         let btn_size = vec2(200.0, 60.0);
         let outline_size = vec2(screen_width(), screen_height());
-
+        let mouse = mouse_position();
         // center position: screen/2 - size/2
         // we make the buttons right side be in the center, to center the button itself we move it to the left by half it's lenght, same for height...
         let btn_pos = vec2(
@@ -85,6 +82,8 @@ async fn main() {
             screen.y / 2.0 - outline_size.y / 2.0,
         );
         screen_outline(outline_pos.x, outline_pos.y, screen.x, screen.y);
+
+        println!("position: {:?}", mouse); // add this to dev mode
 
         match state {
             CurrentState::MainMenu => {
@@ -104,10 +103,10 @@ async fn main() {
                 let game_text_dims = measure_text(game_text, None, 40, 1.0);
                 let game_text_pos = vec2(
                     screen_width() / 2.0 - game_text_dims.width / 2.0,
-                    game_text_dims.height + 10.0,
+                    screen_height() / 2.0 - game_text_dims.height / 2.0,
                 );
                 game_msg(game_text, game_text_pos, 40.0);
-                if button(btn_pos.x, btn_pos.y, btn_size.x, btn_size.y, "Settings") {
+                if button(10.0, 10.0, btn_size.x, btn_size.y, "Settings") {
                     state = CurrentState::Settings;
                 }
             }
@@ -119,26 +118,23 @@ async fn main() {
                     screen_height() - settings_text_dims.height / 2.0,
                 );
                 game_msg(settings_text, settings_text_pos, 30.0);
-
-                let color_btn_offset = 10.0;
+                // for v 0.2.3 add dev mode 
                 let color_btn_size = vec2(200.0, 50.0);
                 if button(
                     50.0,
-                    color_btn_offset,
+                    50.0,
                     color_btn_size.x,
                     color_btn_size.y,
                     "Choose color",
                 ) {
                     current_color = current_color.next();
+                } 
+                // go back to main menu
+                if button(10.0, 10.0, btn_size.x, btn_size.y,"Back to game",) {
+                state = CurrentState::Game;
                 }
-            } /*
-              let txt_dims = measure_text(text, None, font_size, 1.0);
-              let position_text = vec2(screen_width() / 2.0 - txt_dims.width / 2.0,
-                screen_height() / 2.0 - txt_dims.height / 2.0);
-                // this is for centering the text
-              */
+            } 
         }
-
         next_frame().await;
     }
 }
