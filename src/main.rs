@@ -45,16 +45,21 @@ fn screen_outline(x: f32, y: f32, w: f32, h: f32) {
 }
 fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
     let (mx, my) = mouse_position();
-
-    draw_rectangle(x, y, w, h, GRAY);
-    draw_rectangle_lines(x, y, w, h, 4.0, BLACK);
-    draw_text(label, x + 10.0, y + h * 0.6, 30.0, BLACK);
-
-    //hear me out, this might not look complex to someone who knows how to code, but THIS, the 3 lines below, pure horror the moment i had to make that
-    //eventually it clicked and i felt a little dumb because despite how it looks it's actually quite simple and makes a lot of sense
     let inside_x = mx >= x && mx <= x + w;
     let inside_y = my >= y && my <= y + h;
     let hovered = inside_x && inside_y;
+
+if hovered {
+    draw_rectangle(x, y, w, h, LIGHTGRAY);
+    draw_text(label, x + 10.0, y + h * 0.6, 31.0, BLACK);
+} else {
+    draw_rectangle(x, y, w, h, GRAY);
+    draw_text(label, x + 10.0, y + h * 0.6, 30.0, BLACK);
+}
+    draw_rectangle_lines(x, y, w, h, 4.0, BLACK);
+
+    //hear me out, this might not look complex to someone who knows how to code, but THIS, the 3 lines below, pure horror the moment i had to make that
+    //eventually it clicked and i felt a little dumb because despite how it looks it's actually quite simple and makes a lot of sense
 
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
