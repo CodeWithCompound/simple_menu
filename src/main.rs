@@ -41,6 +41,7 @@ fn text_dimensions(text: &str, font_size: f32) -> Vec2 {
     let dims = measure_text(text, None, font_size as u16, 1.0);
     return vec2(dims.width, dims.height);
 }
+
 // WORK IN PROGRESS FUNCTION, DO NOT USE YET
 // actually never mind it's done now
 // i dont really like how it returns a vec2 when it could return a struct with width and height fields but oh well
@@ -72,51 +73,67 @@ fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
 
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
-fn dev_mode_display(dev_mode: bool, mouse: (f32, f32)) {
+fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32) {
     // displays mouse coordinates and a dev mode message when dev mode is active
     // the function is called every frame, but only draws when dev_mode is true
     // which is efficient enough for this simple use case
     // but i should probably add some throttling or optimization if this were to be used in a more complex application oh well
+
     if dev_mode {
         let dev_txt_dim = text_dimensions("developer mode active", 20.0);
         let cords_txt_dim = text_dimensions(&format!("x: {} | y: {}", mouse.0, mouse.1), 20.0);
-
-        let text_dim = vec4(
-            dev_txt_dim.x,
-            dev_txt_dim.y,
-            cords_txt_dim.x,
-            cords_txt_dim.y,
-        );
-
+        let fps_txt_dim = text_dimensions(&format!("FPS: {}", fps), 20.0);
+        let dev_dim = vec2(dev_txt_dim.x, dev_txt_dim.y);
+        let fps_dim = vec2(fps_txt_dim.x, fps_txt_dim.y);
+        let cords_dim = vec2(cords_txt_dim.x, cords_txt_dim.y);
         draw_text(
             &format!("x: {} | y: {}", mouse.0, mouse.1),
-            screen_width() * 0.85 - text_dim.z / 2.0,
-            text_dim.w * 2.0,
+            screen_width() * 0.85 - cords_dim.x / 2.0,
+            screen_height() * 0.05 - cords_dim.y / 2.0,
             20.0,
             BLACK,
         );
 
         draw_text(
             &format!("developer mode active"),
-            screen_width() * 0.85 - text_dim.x / 2.0,
-            text_dim.y * 3.0,
+            screen_width() * 0.85 - dev_dim.x / 2.0,
+            screen_height() * 0.1 - dev_dim.y / 2.0,
+            20.0,
+            BLACK,
+        );
+        // although the fps is drawn every frame, it only updates every 10 frames in the main loop to reduce performance impact and change frequency
+        // probably a less complex way to do this but it works for now
+        draw_text(
+            &format!("FPS: {}", fps),
+            screen_width() * 0.85 - fps_dim.x / 2.0,
+            screen_height() * 0.15 - fps_dim.y / 2.0,
             20.0,
             BLACK,
         );
     }
 }
 
-
 #[macroquad::main("i click button, i happy")]
 async fn main() {
+    // fps tracking variables
+    let mut fps: i32 = 60;
+    let mut i: i32 = 0;
+    let max: i32 = 10;
+
     // lots of variables to keep track of the state of the game
     let version = "0.2.3";
     let mut dev_mode = false;
     let mut state = CurrentState::MainMenu;
     let mut current_color: BgColor = BgColor::PURPLE;
     loop {
+        // for fps display in dev mode
+        i += 1;
+        if i >= max {
+            i = 0;
+            fps = get_fps();
+        }
         clear_background(current_color.to_color());
-    // get screen dimensions and button dimensions
+        // get screen dimensions and button dimensions
         let screen = vec2(screen_width(), screen_height());
         let btn_size = vec2(200.0, 60.0);
         let outline_size = vec2(screen_width(), screen_height());
@@ -134,7 +151,7 @@ async fn main() {
         // draw the outline around the screen
         screen_outline(outline_pos.x, outline_pos.y, screen.x, screen.y);
         // display dev mode info if active
-        dev_mode_display(dev_mode, mouse);
+        dev_mode_display(dev_mode, mouse, fps);
         // this match statement handles the different states of the game, note how each state has its own UI and functionality
         match state {
             CurrentState::MainMenu => {
