@@ -128,7 +128,7 @@ fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
 
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
-fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32) {
+fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32, amount_of_dots: i32) {
     // displays mouse coordinates and a dev mode message when dev mode is active
     // the function is called every frame, but only draws when dev_mode is true
     // which is efficient enough for this simple use case
@@ -138,9 +138,13 @@ fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32) {
         let dev_txt_dim = text_dimensions("developer mode active", 20.0);
         let cords_txt_dim = text_dimensions(&format!("x: {} | y: {}", mouse.0, mouse.1), 20.0);
         let fps_txt_dim = text_dimensions(&format!("FPS: {}", fps), 20.0);
+                    let dots_txt_dim = text_dimensions(&format!("dots: {}", amount_of_dots), 20.0);
+
         let dev_dim = vec2(dev_txt_dim.x, dev_txt_dim.y);
         let fps_dim = vec2(fps_txt_dim.x, fps_txt_dim.y);
         let cords_dim = vec2(cords_txt_dim.x, cords_txt_dim.y);
+       let dots_dim = vec2(dots_txt_dim.x, dots_txt_dim.y);
+
         draw_text(
             &format!("x: {} | y: {}", mouse.0, mouse.1),
             screen_width() * 0.85 - cords_dim.x / 2.0,
@@ -165,6 +169,14 @@ fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32) {
             20.0,
             BLACK,
         );
+        
+draw_text( 
+            &format!("dots: {}", amount_of_dots),
+            screen_width() * 0.85 - dots_dim.x / 2.0,
+            screen_height() * 0.2 - dots_dim.y / 2.0,
+            20.0,
+            BLACK,
+        );
     }
 }
 
@@ -182,7 +194,7 @@ async fn main() {
     let mut current_color: BgColor = BgColor::PURPLE;
 
     let mut dots: Vec<CuteDot> = Vec::new();
-    let mut amount_of_dots = 20;
+    let mut amount_of_dots: i32 = 20;
 
     let rec_dim = vec2(500.0, 300.0);
     let rec_pos = vec2(
@@ -227,7 +239,7 @@ async fn main() {
         // draw the outline around the screen
         screen_outline(outline_pos.x, outline_pos.y, screen.x, screen.y);
         // display dev mode info if active
-        dev_mode_display(dev_mode, mouse, fps);
+        dev_mode_display(dev_mode, mouse, fps, amount_of_dots);
         // this match statement handles the different states of the game, note how each state has its own UI and functionality
         match state {
             CurrentState::MainMenu => {
@@ -271,6 +283,7 @@ async fn main() {
                 if button(screen_width() / 4.0, screen_height() - 100.0, btn_size.x, btn_size.y, "dots +") {
                      amount_of_dots += 1;
     spawn_dot_in_box(&mut dots, game_pos, game_dim);
+    println!("dots increased to {}", amount_of_dots);
                 }
                 if button(10.0, 10.0, btn_size.x, btn_size.y, "Settings") {
                     state = CurrentState::Settings;
