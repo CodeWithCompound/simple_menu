@@ -44,19 +44,39 @@ struct CuteDot {
     radius: f32,
     color: Color,
 }
-// functions to create, update, and draw cute dots
-// i might expand on this later but for now it's just a simple moving dot
+// calling them cute dots bc why not
 fn new_cute_dot(pos: Vec2) -> CuteDot {
     CuteDot {
         pos,
-        vel: vec2(50.0, 20.0),
+        vel: vec2(50.0, 50.0),
         radius: 5.0,
-        color: BLUE,
+        color: YELLOW,
     }
 }
-fn update_cute_dot(dot: &mut CuteDot, dt: f32) {
-    // simple physics update for the dot
+fn update_cute_dot(dot: &mut CuteDot, dt: f32, area_pos: Vec2, area_dim: Vec2) {
     dot.pos += dot.vel * dt;
+// each of these variables represents the boundaries of the area the dot can move in
+    let left = area_pos.x + dot.radius;
+    let right = area_pos.x + area_dim.x - dot.radius;
+    let top = area_pos.y + dot.radius;
+    let bottom = area_pos.y + area_dim.y - dot.radius;
+
+    // below is simple collision detection with the area boundaries
+    if dot.pos.x < left {
+        dot.pos.x = left;
+        dot.vel.x *= -1.0;
+    } else if dot.pos.x > right {
+        dot.pos.x = right;
+        dot.vel.x *= -1.0;
+    }
+
+    if dot.pos.y < top {
+        dot.pos.y = top;
+        dot.vel.y *= -1.0;
+    } else if dot.pos.y > bottom {
+        dot.pos.y = bottom;
+        dot.vel.y *= -1.0;
+    }
 }
 
 fn draw_cute_dot(dot: &CuteDot) {
@@ -152,24 +172,27 @@ async fn main() {
     let mut state = CurrentState::MainMenu;
     let mut current_color: BgColor = BgColor::PURPLE;
 
-    // we create a vector to hold our cute dots
     let mut dots: Vec<CuteDot> = Vec::new();
-    dots.push(new_cute_dot(vec2(100.0, 100.0)));
-    dots.push(new_cute_dot(vec2(200.0, 150.0)));
-    dots.push(new_cute_dot(vec2(300.0, 200.0)));
-    
+
+    let rec_dim = vec2(500.0, 300.0);
+    let rec_pos = vec2(
+        screen_width() / 2.0 - rec_dim.x / 2.0,
+        screen_height() / 2.0 - rec_dim.y / 2.0,
+    );
+
+    for _ in 0..30 {
+        let radius = 5.0;
+        let x = macroquad::rand::gen_range(rec_pos.x + radius, rec_pos.x + rec_dim.x - radius);
+        let y = macroquad::rand::gen_range(rec_pos.y + radius, rec_pos.y + rec_dim.y - radius);
+        let mut dot = new_cute_dot(vec2(x, y));
+        dot.radius = radius;
+        dots.push(dot);
+    }
+
     loop {
         let dt = get_frame_time();
         clear_background(current_color.to_color());
-        // we calculate the new position of each cute dot
-        for dot in &mut dots {
-            update_cute_dot(dot, dt);
-        }
 
-        // draw the cute dots with our draw function
-        for dot in &dots {
-            draw_cute_dot(dot);
-        }
         // for fps display in dev mode
         i += 1;
         if i >= max {
@@ -210,29 +233,32 @@ async fn main() {
                 }
             }
             CurrentState::Game => {
+                // actually calling it a game is a bit of a stretch
                 let game_text = "game prototype:";
                 let game_text_dims = measure_text(game_text, None, 40, 1.0);
                 let game_text_pos = vec2(
                     screen_width() / 2.0 - game_text_dims.width / 2.0,
                     screen_height() / 4.0 - game_text_dims.height / 2.0,
                 );
-                let rec_dim: Vec2 = vec2(500.0, 300.0);
-                draw_rectangle(
-                    screen_width() / 2.0 - rec_dim.x / 2.0,
-                    screen_height() / 2.0 - rec_dim.y / 2.0,
-                    rec_dim.x,
-                    rec_dim.y,
-                    LIGHTGRAY,
+                let game_dim = vec2(500.0, 300.0);
+                let game_pos = vec2(
+                    screen_width() / 2.0 - game_dim.x / 2.0,
+                    screen_height() / 2.0 - game_dim.y / 2.0,
                 );
-                draw_rectangle_lines(
-                    screen_width() / 2.0 - rec_dim.x / 2.0,
-                    screen_height() / 2.0 - rec_dim.y / 2.0,
-                    rec_dim.x,
-                    rec_dim.y,
-                    5.0,
-                    BLACK,
-                );
+
+                draw_rectangle(game_pos.x, game_pos.y, game_dim.x, game_dim.y, LIGHTGRAY);
+
                 game_msg(game_text, game_text_pos, 40.0);
+// update and draw each cute dot
+                for dot in &mut dots {
+                    update_cute_dot(dot, dt, rec_pos, rec_dim);
+                }
+                for dot in &dots {
+                    draw_cute_dot(dot);
+                }
+                // draw the game area outline after drawing the dots to ensure it's on top
+                draw_rectangle_lines(game_pos.x, game_pos.y, game_dim.x, game_dim.y, 5.0, BLACK);
+
                 if button(10.0, 10.0, btn_size.x, btn_size.y, "Settings") {
                     state = CurrentState::Settings;
                 }
