@@ -37,6 +37,32 @@ impl BgColor {
         }
     }
 }
+// simple struct to represent a cute dot
+struct CuteDot {
+    pos: Vec2,
+    vel: Vec2,
+    radius: f32,
+    color: Color,
+}
+// functions to create, update, and draw cute dots
+// i might expand on this later but for now it's just a simple moving dot
+fn new_cute_dot(pos: Vec2) -> CuteDot {
+    CuteDot {
+        pos,
+        vel: vec2(50.0, 20.0),
+        radius: 5.0,
+        color: BLUE,
+    }
+}
+fn update_cute_dot(dot: &mut CuteDot, dt: f32) {
+    // simple physics update for the dot
+    dot.pos += dot.vel * dt;
+}
+
+fn draw_cute_dot(dot: &CuteDot) {
+    draw_circle(dot.pos.x, dot.pos.y, dot.radius, dot.color);
+}
+
 fn text_dimensions(text: &str, font_size: f32) -> Vec2 {
     let dims = measure_text(text, None, font_size as u16, 1.0);
     return vec2(dims.width, dims.height);
@@ -125,14 +151,31 @@ async fn main() {
     let mut dev_mode = false;
     let mut state = CurrentState::MainMenu;
     let mut current_color: BgColor = BgColor::PURPLE;
+
+    // we create a vector to hold our cute dots
+    let mut dots: Vec<CuteDot> = Vec::new();
+    dots.push(new_cute_dot(vec2(100.0, 100.0)));
+    dots.push(new_cute_dot(vec2(200.0, 150.0)));
+    dots.push(new_cute_dot(vec2(300.0, 200.0)));
+    
     loop {
+        let dt = get_frame_time();
+        clear_background(current_color.to_color());
+        // we calculate the new position of each cute dot
+        for dot in &mut dots {
+            update_cute_dot(dot, dt);
+        }
+
+        // draw the cute dots with our draw function
+        for dot in &dots {
+            draw_cute_dot(dot);
+        }
         // for fps display in dev mode
         i += 1;
         if i >= max {
             i = 0;
             fps = get_fps();
         }
-        clear_background(current_color.to_color());
         // get screen dimensions and button dimensions
         let screen = vec2(screen_width(), screen_height());
         let btn_size = vec2(200.0, 60.0);
