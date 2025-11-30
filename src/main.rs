@@ -82,6 +82,15 @@ fn update_cute_dot(dot: &mut CuteDot, dt: f32, area_pos: Vec2, area_dim: Vec2) {
 fn draw_cute_dot(dot: &CuteDot) {
     draw_circle(dot.pos.x, dot.pos.y, dot.radius, dot.color);
 }
+fn spawn_dot_in_box(dots: &mut Vec<CuteDot>, game_pos: Vec2, game_dim: Vec2) {
+    let radius = 5.0;
+    let x = macroquad::rand::gen_range(game_pos.x + radius, game_pos.x + game_dim.x - radius);
+    let y = macroquad::rand::gen_range(game_pos.y + radius, game_pos.y + game_dim.y - radius);
+
+    let mut dot = new_cute_dot(vec2(x, y));
+    dot.radius = radius;
+    dots.push(dot);
+}
 
 fn text_dimensions(text: &str, font_size: f32) -> Vec2 {
     let dims = measure_text(text, None, font_size as u16, 1.0);
@@ -173,6 +182,7 @@ async fn main() {
     let mut current_color: BgColor = BgColor::PURPLE;
 
     let mut dots: Vec<CuteDot> = Vec::new();
+    let mut amount_of_dots = 20;
 
     let rec_dim = vec2(500.0, 300.0);
     let rec_pos = vec2(
@@ -180,7 +190,7 @@ async fn main() {
         screen_height() / 2.0 - rec_dim.y / 2.0,
     );
 
-    for _ in 0..30 {
+    for _ in 0..amount_of_dots {
         let radius = 5.0;
         let x = macroquad::rand::gen_range(rec_pos.x + radius, rec_pos.x + rec_dim.x - radius);
         let y = macroquad::rand::gen_range(rec_pos.y + radius, rec_pos.y + rec_dim.y - radius);
@@ -251,14 +261,17 @@ async fn main() {
                 game_msg(game_text, game_text_pos, 40.0);
 // update and draw each cute dot
                 for dot in &mut dots {
-                    update_cute_dot(dot, dt, rec_pos, rec_dim);
+                    update_cute_dot(dot, dt, game_pos, game_dim);
                 }
                 for dot in &dots {
                     draw_cute_dot(dot);
                 }
                 // draw the game area outline after drawing the dots to ensure it's on top
                 draw_rectangle_lines(game_pos.x, game_pos.y, game_dim.x, game_dim.y, 5.0, BLACK);
-
+                if button(screen_width() / 4.0, screen_height() - 100.0, btn_size.x, btn_size.y, "dots +") {
+                     amount_of_dots += 1;
+    spawn_dot_in_box(&mut dots, game_pos, game_dim);
+                }
                 if button(10.0, 10.0, btn_size.x, btn_size.y, "Settings") {
                     state = CurrentState::Settings;
                 }
