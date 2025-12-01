@@ -8,10 +8,10 @@ you get a main menu, a fake game screen, and a settings screen where you can cli
 ## features
 
 - main menu with a start button  
-- game screen with placeholder text  
+- game screen with little cute dots that serve as a game
 - settings screen with:
-  - info text
   - background color picker (5 colors, cycles on click)
+  - dev mode for displaying some useful information like number of cute dots and fps
 
 ## how to run
 
