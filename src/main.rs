@@ -81,6 +81,7 @@ fn update_cute_dot(dot: &mut CuteDot, dt: f32, area_pos: Vec2, area_dim: Vec2) {
 
 fn draw_cute_dot(dot: &CuteDot) {
     draw_circle(dot.pos.x, dot.pos.y, dot.radius, dot.color);
+    draw_circle_lines(dot.pos.x, dot.pos.y, dot.radius, 2.0, BLACK);
 }
 fn spawn_dot_in_box(dots: &mut Vec<CuteDot>, game_pos: Vec2, game_dim: Vec2) {
     let radius = 5.0;
@@ -267,22 +268,24 @@ async fn main() {
                     screen_width() / 2.0 - game_dim.x / 2.0,
                     screen_height() / 2.0 - game_dim.y / 2.0,
                 );
+                let outline_size = 10.0;
 
                 draw_rectangle(game_pos.x, game_pos.y, game_dim.x, game_dim.y, LIGHTGRAY);
-
                 game_msg(game_text, game_text_pos, 40.0);
 // update and draw each cute dot
+                let inside_game_pos = game_pos - vec2(outline_size / 2.0, outline_size / 2.0);
+
                 for dot in &mut dots {
-                    update_cute_dot(dot, dt, game_pos, game_dim);
+                    update_cute_dot(dot, dt, inside_game_pos, game_dim);
                 }
                 for dot in &dots {
                     draw_cute_dot(dot);
                 }
                 // draw the game area outline after drawing the dots to ensure it's on top
-                draw_rectangle_lines(game_pos.x, game_pos.y, game_dim.x, game_dim.y, 5.0, BLACK);
+                draw_rectangle_lines(game_pos.x, game_pos.y, game_dim.x, game_dim.y, outline_size, BLACK);
                 if button(screen_width() / 4.0, screen_height() - 100.0, btn_size.x, btn_size.y, "dots +") {
                      amount_of_dots += 1;
-    spawn_dot_in_box(&mut dots, game_pos, game_dim);
+    spawn_dot_in_box(&mut dots, inside_game_pos, game_dim);
     println!("dots increased to {}", amount_of_dots);
                 }
                 if button(10.0, 10.0, btn_size.x, btn_size.y, "Settings") {
