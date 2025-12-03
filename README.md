@@ -15,9 +15,11 @@ a pretty simple menu you can navigate, it includes a little partical simulator, 
 ---
 
 ## Features
+
 ![done](https://img.shields.io/badge/status-done-brightgreen)
 -  3 menues you can navigate
 - each menu has it`s core features in place ( Start screen with start button, Game screen with partical simulator and the Settings to tweak stuff)
+
 ![wip](https://img.shields.io/badge/status-WIP-blue)
 - making it pretty... it kind of looks like 2001 in a nut shell
 -  giving more settings & options for both the Settings & Game tab
