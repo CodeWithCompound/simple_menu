@@ -1,256 +1,188 @@
-// tried to make comments because people might read this code and not understand it otherwise
-// don't worry neither do i fully understand it sometimes
-use macroquad::prelude::*;
-enum CurrentState {
-    Game,
-    MainMenu,
-    Settings,
-}
-#[derive(Clone, Copy, Debug)]
-enum BgColor {
-    RED,
-    GREEN,
-    BLUE,
-    PINK,
-    PURPLE,
-}
-// okay the following 2? i couldn't explain, like i'm trying to be somewhat professional BUT WHO THOUGHT MAKING COLOR GO FROM A TO B COULD BE THIS HARD FFS
-impl BgColor {
-    fn next(self) -> BgColor {
-        match self {
-            BgColor::RED => BgColor::GREEN,
-            BgColor::GREEN => BgColor::BLUE,
-            BgColor::BLUE => BgColor::PINK,
-            BgColor::PINK => BgColor::PURPLE,
-            BgColor::PURPLE => BgColor::RED,
-        }
-    }
-}
-impl BgColor {
-    fn to_color(self) -> Color {
-        match self {
-            BgColor::RED => RED,
-            BgColor::GREEN => GREEN,
-            BgColor::BLUE => BLUE,
-            BgColor::PINK => PINK,
-            BgColor::PURPLE => PURPLE,
-        }
-    }
-}
-// simple struct to represent a cute dot
-struct CuteDot {
-    pos: Vec2,
-    vel: Vec2,
-    radius: f32,
-    color: Color,
-}
-// calling them cute dots bc why not
-fn new_cute_dot(pos: Vec2) -> CuteDot {
-    CuteDot {
-        pos,
-        vel: vec2(50.0, 50.0),
-        radius: 5.0,
-        color: YELLOW,
-    }
-}
-fn update_cute_dot(dot: &mut CuteDot, dt: f32, area_pos: Vec2, area_dim: Vec2) {
-    dot.pos += dot.vel * dt;
-// each of these variables represents the boundaries of the area the dot can move in
-    let left = area_pos.x + dot.radius;
-    let right = area_pos.x + area_dim.x - dot.radius;
-    let top = area_pos.y + dot.radius;
-    let bottom = area_pos.y + area_dim.y - dot.radius;
+//! I tried to document this code so it would be easier to contribue and maintain the game, but I ran into a problem!
+//! I barely manage to maintain it!
+//! good luck I guess <crying emoji>
+//! (no budget for actual emoji, deal with that)
 
-    // below is simple collision detection with the area boundaries
-    if dot.pos.x < left {
-        dot.pos.x = left;
-        dot.vel.x *= -1.0;
-    } else if dot.pos.x > right {
-        dot.pos.x = right;
-        dot.vel.x *= -1.0;
-    }
+use simple_menu::*;
 
-    if dot.pos.y < top {
-        dot.pos.y = top;
-        dot.vel.y *= -1.0;
-    } else if dot.pos.y > bottom {
-        dot.pos.y = bottom;
-        dot.vel.y *= -1.0;
-    }
+const DEFAULT_DOTS_COUNT: usize = 20;
+const GAME_AREA_SIZE: Vec2 = vec2(500.0, 300.0);
+const BTN_SIZE: Vec2 = vec2(200.0, 60.0);
+const COLOR_BTN_SIZE: Vec2 = vec2(200.0, 50.0);
+const SCREEN_OUTLINE_THICKNESS: f32 = 10.0;
+const GAME_OUTLINE_THICKNESS: f32 = 10.0;
+const BTN_OUTLINE_THICKNESS: f32 = 4.0;
+const FPS_UPDATE_INTERVAL: i32 = 10;
+
+fn game_bounds() -> Rect {
+    Rect::new(
+        (screen_width() - GAME_AREA_SIZE.x) / 2.0,
+        (screen_height() - GAME_AREA_SIZE.y) / 2.0,
+        GAME_AREA_SIZE.x,
+        GAME_AREA_SIZE.y,
+    )
 }
 
-fn draw_cute_dot(dot: &CuteDot) {
-    draw_circle(dot.pos.x, dot.pos.y, dot.radius, dot.color);
-    draw_circle_lines(dot.pos.x, dot.pos.y, dot.radius, 2.0, BLACK);
-}
-fn spawn_dot_in_box(dots: &mut Vec<CuteDot>, game_pos: Vec2, game_dim: Vec2) {
-    let radius = 5.0;
-    let x = macroquad::rand::gen_range(game_pos.x + radius, game_pos.x + game_dim.x - radius);
-    let y = macroquad::rand::gen_range(game_pos.y + radius, game_pos.y + game_dim.y - radius);
-
-    let mut dot = new_cute_dot(vec2(x, y));
-    dot.radius = radius;
-    dots.push(dot);
+fn centered_rect(center_x: f32, y: f32, size: Vec2) -> Rect {
+    Rect::new(center_x - size.x / 2.0, y, size.x, size.y)
 }
 
-fn text_dimensions(text: &str, font_size: f32) -> Vec2 {
-    let dims = measure_text(text, None, font_size as u16, 1.0);
-    return vec2(dims.width, dims.height);
+// FORMERLY "WORK IN PROGRESS FUNCTION, DO NOT USE YET"
+// The existential crisis has been resolved: it now returns TextDimensions with actual width
+// and height fields instead of stuffing dimensions into a Vec2 like a barbarian.
+fn text_dimensions(text: &str, font_size: f32) -> TextDimensions {
+    measure_text(text, None, font_size as u16, 1.0)
 }
 
-// WORK IN PROGRESS FUNCTION, DO NOT USE YET
-// actually never mind it's done now
-// i dont really like how it returns a vec2 when it could return a struct with width and height fields but oh well
-//  i might change that later
-// please ignore the mess that is this function
+fn centered_text_pos(text: &str, center_x: f32, center_y: f32, font_size: f32) -> Vec2 {
+    let dims = text_dimensions(text, font_size);
+    vec2(center_x - dims.width / 2.0, center_y - dims.height / 2.0)
+}
 
 fn game_msg(text: &str, position: Vec2, font_size: f32) {
-    draw_text(text, position.x, position.y, font_size as f32, WHITE);
+    draw_text(text, position.x, position.y, font_size, WHITE);
 }
-//this function draws an outline around the screen, used for visual effect
-fn screen_outline(x: f32, y: f32, w: f32, h: f32) {
-    draw_rectangle_lines(x, y, w, h, 10.0, BLACK);
-}
-// simple button function, returns true if clicked yes i know it's basic but hey it works
-fn button(x: f32, y: f32, w: f32, h: f32, label: &str) -> bool {
-    let (mx, my) = mouse_position();
-    let inside_x = mx >= x && mx <= x + w;
-    let inside_y = my >= y && my <= y + h;
-    let hovered = inside_x && inside_y;
 
-    if hovered {
-        draw_rectangle(x, y, w, h, LIGHTGRAY);
-        draw_text(label, x + 10.0, y + h * 0.6, 31.0, BLACK);
+//this function draws an outline around the screen, used for visual effect
+fn screen_outline() {
+    draw_rectangle_lines(
+        0.0,
+        0.0,
+        screen_width(),
+        screen_height(),
+        SCREEN_OUTLINE_THICKNESS,
+        BLACK,
+    );
+}
+
+/// A function that checks if pressed a button,
+/// or if the mouse is currently hoverring the button ->
+/// The button becomes light gray (until unhovered)
+fn button(rect: Rect, label: &str) -> bool {
+    let (mx, my) = mouse_position();
+    let hovered = rect.contains(vec2(mx, my));
+
+    let (bg, font_size) = if hovered {
+        (LIGHTGRAY, 31.0)
     } else {
-        draw_rectangle(x, y, w, h, GRAY);
-        draw_text(label, x + 10.0, y + h * 0.6, 30.0, BLACK);
-    }
-    draw_rectangle_lines(x, y, w, h, 4.0, BLACK);
+        (GRAY, 30.0)
+    };
+
+    draw_rectangle(rect.x, rect.y, rect.w, rect.h, bg);
+    draw_text(
+        label,
+        rect.x + 10.0,
+        rect.y + rect.h * 0.6,
+        font_size,
+        BLACK,
+    );
+    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, BTN_OUTLINE_THICKNESS, BLACK);
 
     hovered && is_mouse_button_pressed(MouseButton::Left)
 }
-fn dev_mode_display(dev_mode: bool, mouse: (f32, f32), fps: i32, amount_of_dots: i32) {
+
+fn dev_mode_display(mouse: (f32, f32), fps: i32, dots_count: usize) {
     // displays mouse coordinates and a dev mode message when dev mode is active
     // the function is called every frame, but only draws when dev_mode is true
     // which is efficient enough for this simple use case
     // but i should probably add some throttling or optimization if this were to be used in a more complex application oh well
 
-    if dev_mode {
-        let dev_txt_dim = text_dimensions("developer mode active", 20.0);
-        let cords_txt_dim = text_dimensions(&format!("x: {} | y: {}", mouse.0, mouse.1), 20.0);
-        let fps_txt_dim = text_dimensions(&format!("FPS: {}", fps), 20.0);
-                    let dots_txt_dim = text_dimensions(&format!("dots: {}", amount_of_dots), 20.0);
+    let entries = [
+        format!("x: {} | y: {}", mouse.0, mouse.1),
+        "developer mode active".to_string(),
+        format!("FPS: {fps}"),
+        format!("dots: {dots_count}"),
+    ];
 
-        let dev_dim = vec2(dev_txt_dim.x, dev_txt_dim.y);
-        let fps_dim = vec2(fps_txt_dim.x, fps_txt_dim.y);
-        let cords_dim = vec2(cords_txt_dim.x, cords_txt_dim.y);
-       let dots_dim = vec2(dots_txt_dim.x, dots_txt_dim.y);
+    let font_size = 20.0;
+    let base_x = screen_width() * 0.85;
 
-        draw_text(
-            &format!("x: {} | y: {}", mouse.0, mouse.1),
-            screen_width() * 0.85 - cords_dim.x / 2.0,
-            screen_height() * 0.05 - cords_dim.y / 2.0,
-            20.0,
-            BLACK,
-        );
-
-        draw_text(
-            &format!("developer mode active"),
-            screen_width() * 0.85 - dev_dim.x / 2.0,
-            screen_height() * 0.1 - dev_dim.y / 2.0,
-            20.0,
-            BLACK,
-        );
+    for (idx, line) in entries.iter().enumerate() {
+        let dims = text_dimensions(line, font_size);
         // although the fps is drawn every frame, it only updates every 10 frames in the main loop to reduce performance impact and change frequency
         // probably a less complex way to do this but it works for now
+        let y_pos = screen_height() * (0.05 * (idx + 1) as f32);
         draw_text(
-            &format!("FPS: {}", fps),
-            screen_width() * 0.85 - fps_dim.x / 2.0,
-            screen_height() * 0.15 - fps_dim.y / 2.0,
-            20.0,
-            BLACK,
-        );
-        
-draw_text( 
-            &format!("dots: {}", amount_of_dots),
-            screen_width() * 0.85 - dots_dim.x / 2.0,
-            screen_height() * 0.2 - dots_dim.y / 2.0,
-            20.0,
+            line,
+            base_x - dims.width / 2.0,
+            y_pos - dims.height / 2.0,
+            font_size,
             BLACK,
         );
     }
 }
 
-#[macroquad::main("i click button, i happy")]
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(version)]
+struct Cli {
+    #[arg(skip = env!("CARGO_PKG_VERSION"))]
+    version: &'static str,
+    #[arg(long)]
+    dev_mode: bool,
+    #[arg(long)]
+    dots_count: Option<usize>,
+}
+
+#[macroquad::main("I click button, I happy")]
 async fn main() {
+    let cli = Cli::parse();
+
     // fps tracking variables
-    let mut fps: i32 = 60;
-    let mut i: i32 = 0;
-    let max: i32 = 10;
+    let mut fps = 60;
+    let mut i = 0;
 
     // lots of variables to keep track of the state of the game
-    let version = "0.2.3";
-    let mut dev_mode = false;
+    let mut dev_mode = cli.dev_mode;
     let mut state = CurrentState::MainMenu;
-    let mut current_color: BgColor = BgColor::PURPLE;
+    let mut current_color = BgColor::Purple;
 
-    let mut dots: Vec<CuteDot> = Vec::new();
-    let mut amount_of_dots: i32 = 20;
+    let mut dots_count = cli.dots_count.unwrap_or(DEFAULT_DOTS_COUNT);
+    let mut dots: Vec<CuteDot> = Vec::with_capacity(dots_count);
+    let initial_bounds = game_bounds();
 
-    let rec_dim = vec2(500.0, 300.0);
-    let rec_pos = vec2(
-        screen_width() / 2.0 - rec_dim.x / 2.0,
-        screen_height() / 2.0 - rec_dim.y / 2.0,
-    );
-
-    for _ in 0..amount_of_dots {
-        let radius = 5.0;
-        let x = macroquad::rand::gen_range(rec_pos.x + radius, rec_pos.x + rec_dim.x - radius);
-        let y = macroquad::rand::gen_range(rec_pos.y + radius, rec_pos.y + rec_dim.y - radius);
-        let mut dot = new_cute_dot(vec2(x, y));
-        dot.radius = radius;
-        dots.push(dot);
+    for _ in 0..dots_count {
+        spawn_dot_in_box(&mut dots, initial_bounds);
     }
 
     loop {
         let dt = get_frame_time();
-        clear_background(current_color.to_color());
+        clear_background(Color::from(current_color));
 
         // for fps display in dev mode
         i += 1;
-        if i >= max {
+        if i >= FPS_UPDATE_INTERVAL {
             i = 0;
             fps = get_fps();
         }
-        // get screen dimensions and button dimensions
-        let screen = vec2(screen_width(), screen_height());
-        let btn_size = vec2(200.0, 60.0);
-        let outline_size = vec2(screen_width(), screen_height());
-        let mouse: (f32, f32) = mouse_position();
-        // center position: screen/2 - size/2
-        // this is used to center the button on the screen
-        let btn_pos = vec2(
-            screen.x / 2.0 - btn_size.x / 2.0,
-            screen.y / 2.0 - btn_size.y / 2.0,
-        );
-        let outline_pos = vec2(
-            screen.x / 2.0 - outline_size.x / 2.0,
-            screen.y / 2.0 - outline_size.y / 2.0,
-        );
+
         // draw the outline around the screen
-        screen_outline(outline_pos.x, outline_pos.y, screen.x, screen.y);
+        screen_outline();
+
         // display dev mode info if active
-        dev_mode_display(dev_mode, mouse, fps, amount_of_dots);
+        if dev_mode {
+            dev_mode_display(mouse_position(), fps, dots_count);
+        }
+
         // this match statement handles the different states of the game, note how each state has its own UI and functionality
         match state {
             CurrentState::MainMenu => {
-                let v_text = version;
-                let v_text_dims = measure_text(v_text, None, 20, 1.0);
+                let v_text = cli.version;
+                let v_text_dims = text_dimensions(v_text, 20.0);
                 let game_text_pos = vec2(10.0, v_text_dims.height * 3.0);
 
                 game_msg(v_text, game_text_pos, 40.0);
 
-                if button(btn_pos.x, btn_pos.y, btn_size.x, btn_size.y, "START") {
+                // center position: screen/2 - size/2
+                // this is used to center the button on the screen
+                let btn_rect = centered_rect(
+                    screen_width() / 2.0,
+                    (screen_height() - BTN_SIZE.y) / 2.0,
+                    BTN_SIZE,
+                );
+
+                if button(btn_rect, "START") {
                     println!("game started!");
                     state = CurrentState::Game;
                 }
@@ -258,71 +190,82 @@ async fn main() {
             CurrentState::Game => {
                 // actually calling it a game is a bit of a stretch
                 let game_text = "game prototype:";
-                let game_text_dims = measure_text(game_text, None, 40, 1.0);
-                let game_text_pos = vec2(
-                    screen_width() / 2.0 - game_text_dims.width / 2.0,
-                    screen_height() / 4.0 - game_text_dims.height / 2.0,
-                );
-                let game_dim = vec2(500.0, 300.0);
-                let game_pos = vec2(
-                    screen_width() / 2.0 - game_dim.x / 2.0,
-                    screen_height() / 2.0 - game_dim.y / 2.0,
-                );
-                let outline_size = 10.0;
+                let game_bounds = game_bounds();
 
-                draw_rectangle(game_pos.x, game_pos.y, game_dim.x, game_dim.y, LIGHTGRAY);
+                draw_rectangle(
+                    game_bounds.x,
+                    game_bounds.y,
+                    game_bounds.w,
+                    game_bounds.h,
+                    LIGHTGRAY,
+                );
+                let game_text_pos =
+                    centered_text_pos(game_text, screen_width() / 2.0, screen_height() / 4.0, 40.0);
                 game_msg(game_text, game_text_pos, 40.0);
-// update and draw each cute dot
-                let inside_game_pos = game_pos - vec2(outline_size / 2.0, outline_size / 2.0);
 
+                // update and draw each cute dot
                 for dot in &mut dots {
-                    update_cute_dot(dot, dt, inside_game_pos, game_dim);
+                    dot.update(dt, game_bounds);
+                    dot.draw();
                 }
-                for dot in &dots {
-                    draw_cute_dot(dot);
-                }
+
                 // draw the game area outline after drawing the dots to ensure it's on top
-                draw_rectangle_lines(game_pos.x, game_pos.y, game_dim.x, game_dim.y, outline_size, BLACK);
-                if button(screen_width() / 4.0, screen_height() - 100.0, btn_size.x, btn_size.y, "dots +") {
-                     amount_of_dots += 1;
-    spawn_dot_in_box(&mut dots, inside_game_pos, game_dim);
-    println!("dots increased to {}", amount_of_dots);
+                draw_rectangle_lines(
+                    game_bounds.x,
+                    game_bounds.y,
+                    game_bounds.w,
+                    game_bounds.h,
+                    GAME_OUTLINE_THICKNESS,
+                    BLACK,
+                );
+
+                if button(
+                    Rect::new(
+                        screen_width() / 4.0,
+                        screen_height() - 100.0,
+                        BTN_SIZE.x,
+                        BTN_SIZE.y,
+                    ),
+                    "dots +",
+                ) {
+                    dots_count += 1;
+                    spawn_dot_in_box(&mut dots, game_bounds);
+                    println!("dots increased to {dots_count}");
                 }
-                if button(10.0, 10.0, btn_size.x, btn_size.y, "Settings") {
+
+                if button(Rect::new(10.0, 10.0, BTN_SIZE.x, BTN_SIZE.y), "Settings") {
                     state = CurrentState::Settings;
                 }
             }
             CurrentState::Settings => {
                 // i might add more settings later but for now this is fine
                 // also the settings text at the bottom is just a placeholder for now
-                let settings_text = "change your settings as you desire! (SETTINGS SOON!!)";
-                let settings_text_dims = measure_text(settings_text, None, 30, 1.0);
-                let settings_text_pos: Vec2 = vec2(
-                    screen_width() / 2.0 - settings_text_dims.width / 2.0,
-                    screen_height() - settings_text_dims.height / 2.0,
+                let settings_text = "change your settings as you desire!";
+                let settings_dims = text_dimensions(settings_text, 30.0);
+                let settings_text_pos = vec2(
+                    (screen_width() - settings_dims.width) / 2.0,
+                    screen_height() - settings_dims.height / 2.0,
                 );
                 game_msg(settings_text, settings_text_pos, 30.0);
-                let color_btn_size = vec2(200.0, 50.0);
+
                 if button(
-                    screen_width() / 2.0 - btn_size.x / 2.0,
-                    125.0,
-                    color_btn_size.x,
-                    color_btn_size.y,
-                    &format!("Dev: {}", dev_mode),
+                    centered_rect(screen_width() / 2.0, 125.0, COLOR_BTN_SIZE),
+                    &format!("Dev: {}", if dev_mode { "activated" } else { "disabled" }),
                 ) {
                     dev_mode = !dev_mode;
                 }
+
                 if button(
-                    screen_width() / 2.0 - btn_size.x / 2.0,
-                    50.0,
-                    color_btn_size.x,
-                    color_btn_size.y,
+                    centered_rect(screen_width() / 2.0, 50.0, COLOR_BTN_SIZE),
                     "Choose color",
                 ) {
                     current_color = current_color.next();
                 }
 
-                if button(10.0, 10.0, btn_size.x, btn_size.y, "Back to game") {
+                if button(
+                    Rect::new(10.0, 10.0, BTN_SIZE.x, BTN_SIZE.y),
+                    "Back to game",
+                ) {
                     state = CurrentState::Game;
                 }
             }
@@ -330,5 +273,3 @@ async fn main() {
         next_frame().await;
     }
 }
-// hey we made it to the end! congrats!
-// hope you found what you were looking for :D
